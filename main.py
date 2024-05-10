@@ -81,6 +81,14 @@ cv2.imwrite(os.path.join(output_folder, 'object_detected_img.png'), rgb_annotate
 cv2.imwrite(os.path.join(output_folder, 'binary_mask.png'), grabcut_mask)
 cv2.imwrite(os.path.join(output_folder, 'extracted_object.png'), segmented_object)
 
+# Convert input image to YUV color space
+yuv_img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+cv2.imwrite(os.path.join(output_folder, 'yuv_img.tiff'), yuv_img)
+
+# Convert segmented object to YUV color space
+yuv_segmented_object = cv2.cvtColor(segmented_object, cv2.COLOR_BGR2YUV)
+cv2.imwrite(os.path.join(output_folder, 'yuv_extracted_object.tiff'), yuv_segmented_object)
+
 # Display the input image, GrabCut mask, and segmented object
 resized_img = cv2.resize(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
 resized_grabcut_mask = cv2.resize(grabcut_mask, (WINDOW_WIDTH, WINDOW_HEIGHT))
