@@ -5,6 +5,8 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import cv2
 import os
+import pyttsx3
+from moviepy.editor import VideoFileClip, AudioFileClip
 
 # Constants
 MARGIN = 10  # pixels
@@ -45,7 +47,7 @@ def grabcut_segmentation(image, rect, iter_count=10):
 
 
 # Load input image
-IMAGE_FILE = 'img.png'
+IMAGE_FILE = 'image.png'
 img = cv2.imread(IMAGE_FILE)
 
 # Create ObjectDetector object
@@ -87,29 +89,30 @@ cv2.imwrite(os.path.join(output_folder, 'yuv_img.tiff'), yuv_img)
 yuv_segmented_object = cv2.cvtColor(segmented_object, cv2.COLOR_BGR2YUV)
 cv2.imwrite(os.path.join(output_folder, 'yuv_extracted_object.tiff'), yuv_segmented_object)
 
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 800
-
-# Display the input image, GrabCut mask, and segmented object
-resized_img = cv2.resize(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
-resized_rgb_annotated_image = cv2.resize(rgb_annotated_image, (WINDOW_WIDTH, WINDOW_HEIGHT))
-resized_grabcut_mask = cv2.resize(grabcut_mask, (WINDOW_WIDTH, WINDOW_HEIGHT))
-resized_segmented_object = cv2.resize(segmented_object, (WINDOW_WIDTH, WINDOW_HEIGHT))
+# WINDOW_WIDTH = 800
+# WINDOW_HEIGHT = 800
+#
+# # Display the input image, GrabCut mask, and segmented object
+# resized_img = cv2.resize(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
+# resized_rgb_annotated_image = cv2.resize(rgb_annotated_image, (WINDOW_WIDTH, WINDOW_HEIGHT))
+# resized_grabcut_mask = cv2.resize(grabcut_mask, (WINDOW_WIDTH, WINDOW_HEIGHT))
+# resized_segmented_object = cv2.resize(segmented_object, (WINDOW_WIDTH, WINDOW_HEIGHT))
 # cv2.imshow("Input Image", resized_img)
 # cv2.imshow('Detected Object Image', resized_rgb_annotated_image)
 # cv2.imshow("Binary Mask", resized_grabcut_mask)
 # cv2.imshow("Extracted Object", resized_segmented_object)
 # cv2.waitKey(0)
 
+print("Imagini prelucrate")
 
 # Constants
 fps = 25.0
 duration = 5  # seconds
-dimensions = (800, 800)
+dimensions = (1900, 1900)
 
 # Define the list of image paths
 image_paths = [
-    'img.png',
+    'image.png',
     'object_detected_img.png',
     'extracted_object.png',
     'binary_mask.png',
@@ -117,26 +120,29 @@ image_paths = [
     'yuv_extracted_object.tiff'
 ]
 
+# Define custom durations for each image (in seconds)
+custom_durations = [3, 2.5, 2, 2, 5, 5]  # Modify these values as needed
+
 # Initialize video writer
 fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 
-output_video = cv2.VideoWriter('output.avi', fourcc, fps, dimensions)
+output_video = cv2.VideoWriter('video.avi', fourcc, fps, dimensions)
 
 # Define the text parameters
 font = cv2.FONT_HERSHEY_SIMPLEX
-text_position = (50, 50)  # Position of the text in the frame
-font_scale = 1
+text_position = (100, 100)  # Position of the text in the frame
+font_scale = 2
 font_color = (255, 255, 255)  # White color
 thickness = 2
 
 # Define the text to be displayed for each image
-image_texts = ['Original image with black surfboard on\nthe beach', 'Image with surfboard detected', 'Extracted object', 'Mask with the object', 'Original image in YUV color space saved\nas tiff file', 'Mask with object in YUV colorspace saved\nas tiff file']
+image_texts = ['Original image with black surfboard on the beach', 'Image with surfboard detected', 'Extracted object', 'Mask with the object', 'Original image in YUV color space saved as tiff file', 'Mask with object in YUV colorspace saved as tiff file']
 
 # OpenCV VideoWriter doesn't support transparent text overlay, so we'll create a black background
 black_frame = np.zeros((dimensions[1], dimensions[0], 3), dtype=np.uint8)
 
 # Write each image to the video with text overlay
-for image_path, text in zip(image_paths, image_texts):
+for image_path, text, duration in zip(image_paths, image_texts, custom_durations):
     # Read the image
     img = cv2.imread(image_path)
 
@@ -146,7 +152,7 @@ for image_path, text in zip(image_paths, image_texts):
         continue
 
     # Resize the image to fit within the frame
-    img_resized = cv2.resize(img, (600, 600))  # Adjust dimensions as needed
+    img_resized = cv2.resize(img, (1560, 1560))  # Adjust dimensions as needed
 
     # Add text to the frame
     frame_with_text = black_frame.copy()
@@ -167,10 +173,47 @@ for image_path, text in zip(image_paths, image_texts):
     # Combine the image with the frame containing the text
     frame_with_text[y_offset:y_offset + img_resized.shape[0], x_offset:x_offset + img_resized.shape[1]] = img_resized
 
-    # Write the frame to the video
+    # Write the frame to the video with custom duration
     for _ in range(int(fps * duration)):
         output_video.write(frame_with_text)
 
 # Release the video writer
 output_video.release()
 print("Video Saved")
+
+# Initialize the pyttsx3 engine
+engine = pyttsx3.init()
+
+# Set properties (optional)
+engine.setProperty('rate', 150)  # Speed of speech
+
+
+# Define the texts to be spoken
+text = ('Original image with black surfboard on the beach. Image with surfboard detected. Extracted object. Mask '
+        'with the object. Original image in YUV color space saved as tiff file. Mask with object in YUV colorspace '
+        'saved as tiff file.')
+
+# Define the output audio file name
+output_file = "audio.mp3"
+
+# Iterate through the texts
+engine.save_to_file(text, output_file)  # Save text to the output file
+
+engine.runAndWait()
+
+print("Audio inregistrat")
+
+# Load the video and audio files
+video = VideoFileClip("video.avi")
+audio = AudioFileClip("audio.mp3")
+
+# Set the audio of the video to the audio from audio.mp3
+video = video.set_audio(audio)
+
+# Write the modified video with the new audio using the DivX codec
+video.write_videofile("video_with__audio.avi", codec="libxvid", audio_codec="mp3")
+
+# Optional: If you want to overwrite the old video with the new one
+#os.replace("video_with_audio.avi", "video.avi")
+
+print("Clip final salvat")
