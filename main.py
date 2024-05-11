@@ -103,9 +103,8 @@ resized_segmented_object = cv2.resize(segmented_object, (WINDOW_WIDTH, WINDOW_HE
 
 
 # Constants
-COMPRESSED_FORMAT = True
 fps = 25.0
-duration_per_image = 5  # seconds
+duration = 5  # seconds
 dimensions = (800, 800)
 
 # Define the list of image paths
@@ -119,26 +118,58 @@ image_paths = [
 ]
 
 # Initialize video writer
-if COMPRESSED_FORMAT:
-    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-else:
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 
 output_video = cv2.VideoWriter('output.avi', fourcc, fps, dimensions)
 
-# Iterate over each image
-for image_path in image_paths:
+# Define the text parameters
+font = cv2.FONT_HERSHEY_SIMPLEX
+text_position = (50, 50)  # Position of the text in the frame
+font_scale = 1
+font_color = (255, 255, 255)  # White color
+thickness = 2
+
+# Define the text to be displayed for each image
+image_texts = ['Original image with black surfboard on\nthe beach', 'Image with surfboard detected', 'Extracted object', 'Mask with the object', 'Original image in YUV color space saved\nas tiff file', 'Mask with object in YUV colorspace saved\nas tiff file']
+
+# OpenCV VideoWriter doesn't support transparent text overlay, so we'll create a black background
+black_frame = np.zeros((dimensions[1], dimensions[0], 3), dtype=np.uint8)
+
+# Write each image to the video with text overlay
+for image_path, text in zip(image_paths, image_texts):
     # Read the image
-    image = cv2.imread(image_path)
-    if image is None:
+    img = cv2.imread(image_path)
+
+    # Check if the image was successfully read
+    if img is None:
+        print(f"Error: Unable to read image from path: {image_path}")
         continue
 
-    # Resize the image to match video dimensions
-    resized_image = cv2.resize(image, dimensions)
+    # Resize the image to fit within the frame
+    img_resized = cv2.resize(img, (600, 600))  # Adjust dimensions as needed
 
-    # Write the image to the video for the specified duration
-    for _ in range(int(fps * duration_per_image)):
-        output_video.write(resized_image)
+    # Add text to the frame
+    frame_with_text = black_frame.copy()
+    # Split the text into lines
+    lines = text.split('\n')
+
+    # Draw each line of text
+    y_offset = text_position[1]
+    for line in lines:
+        cv2.putText(frame_with_text, line, (text_position[0], y_offset), font, font_scale, font_color, thickness,
+                    cv2.LINE_AA)
+        y_offset += int(18 * font_scale * thickness)
+
+    # Calculate the position to place the resized image
+    x_offset = (frame_with_text.shape[1] - img_resized.shape[1]) // 2
+    y_offset = (frame_with_text.shape[0] - img_resized.shape[0]) // 2
+
+    # Combine the image with the frame containing the text
+    frame_with_text[y_offset:y_offset + img_resized.shape[0], x_offset:x_offset + img_resized.shape[1]] = img_resized
+
+    # Write the frame to the video
+    for _ in range(int(fps * duration)):
+        output_video.write(frame_with_text)
 
 # Release the video writer
 output_video.release()
