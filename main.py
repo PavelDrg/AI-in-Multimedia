@@ -13,6 +13,7 @@ FONT_SIZE = 1
 FONT_THICKNESS = 1
 TEXT_COLOR = (0, 255, 0)  # green
 
+
 # Function to visualize bounding boxes on the input image
 def visualize(image, detection_result):
     """Draws bounding boxes on the input image and return it."""
@@ -23,6 +24,7 @@ def visualize(image, detection_result):
         cv2.rectangle(image, start_point, end_point, TEXT_COLOR, 3)
     return image
 
+
 # Function to create a binary mask using GrabCut
 def grabcut_segmentation(image, rect, iter_count=10):
     # Initialize mask
@@ -32,7 +34,7 @@ def grabcut_segmentation(image, rect, iter_count=10):
     bg_model = np.zeros((1, 65), dtype="float")
     # Apply GrabCut
     (mask, bg_model, fg_model) = cv2.grabCut(image, mask, rect, bg_model, fg_model,
-                                              iterCount=iter_count, mode=cv2.GC_INIT_WITH_RECT)
+                                             iterCount=iter_count, mode=cv2.GC_INIT_WITH_RECT)
     # Generate binary mask
     output_mask = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1)
     # Scale the mask
@@ -41,8 +43,9 @@ def grabcut_segmentation(image, rect, iter_count=10):
     segmented_object = cv2.bitwise_and(image, image, mask=output_mask)
     return output_mask, segmented_object
 
+
 # Load input image
-IMAGE_FILE = 'images/img.png'
+IMAGE_FILE = 'img.png'
 img = cv2.imread(IMAGE_FILE)
 
 # Create ObjectDetector object
@@ -61,11 +64,6 @@ image_copy = np.copy(image.numpy_view())
 annotated_image = visualize(image_copy, detection_result)
 rgb_annotated_image = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
 
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 800
-resized_rgb_annotated_image = cv2.resize(rgb_annotated_image, (WINDOW_WIDTH, WINDOW_HEIGHT))
-cv2.imshow('Detected Object Image', resized_rgb_annotated_image)
-
 # Extract bounding box coordinates from the first program
 for detection in detection_result.detections:
     bbox = detection.bounding_box
@@ -75,7 +73,7 @@ for detection in detection_result.detections:
 # Apply GrabCut using the bounding box segmentation method
 grabcut_mask, segmented_object = grabcut_segmentation(rgb_annotated_image, rect)
 
-output_folder = 'images'
+output_folder = os.path.dirname(__file__)
 
 cv2.imwrite(os.path.join(output_folder, 'object_detected_img.png'), rgb_annotated_image)
 cv2.imwrite(os.path.join(output_folder, 'binary_mask.png'), grabcut_mask)
@@ -89,11 +87,59 @@ cv2.imwrite(os.path.join(output_folder, 'yuv_img.tiff'), yuv_img)
 yuv_segmented_object = cv2.cvtColor(segmented_object, cv2.COLOR_BGR2YUV)
 cv2.imwrite(os.path.join(output_folder, 'yuv_extracted_object.tiff'), yuv_segmented_object)
 
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 800
+
 # Display the input image, GrabCut mask, and segmented object
 resized_img = cv2.resize(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
+resized_rgb_annotated_image = cv2.resize(rgb_annotated_image, (WINDOW_WIDTH, WINDOW_HEIGHT))
 resized_grabcut_mask = cv2.resize(grabcut_mask, (WINDOW_WIDTH, WINDOW_HEIGHT))
 resized_segmented_object = cv2.resize(segmented_object, (WINDOW_WIDTH, WINDOW_HEIGHT))
-cv2.imshow("Input Image", resized_img)
-cv2.imshow("Binary Mask", resized_grabcut_mask)
-cv2.imshow("Extracted Object", resized_segmented_object)
-cv2.waitKey(0)
+# cv2.imshow("Input Image", resized_img)
+# cv2.imshow('Detected Object Image', resized_rgb_annotated_image)
+# cv2.imshow("Binary Mask", resized_grabcut_mask)
+# cv2.imshow("Extracted Object", resized_segmented_object)
+# cv2.waitKey(0)
+
+
+# Constants
+COMPRESSED_FORMAT = True
+fps = 25.0
+duration_per_image = 5  # seconds
+dimensions = (800, 800)
+
+# Define the list of image paths
+image_paths = [
+    'img.png',
+    'object_detected_img.png',
+    'extracted_object.png',
+    'binary_mask.png',
+    'yuv_img.tiff',
+    'yuv_extracted_object.tiff'
+]
+
+# Initialize video writer
+if COMPRESSED_FORMAT:
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+else:
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+
+output_video = cv2.VideoWriter('output.avi', fourcc, fps, dimensions)
+
+# Iterate over each image
+for image_path in image_paths:
+    # Read the image
+    image = cv2.imread(image_path)
+    if image is None:
+        continue
+
+    # Resize the image to match video dimensions
+    resized_image = cv2.resize(image, dimensions)
+
+    # Write the image to the video for the specified duration
+    for _ in range(int(fps * duration_per_image)):
+        output_video.write(resized_image)
+
+# Release the video writer
+output_video.release()
+print("Video Saved")
