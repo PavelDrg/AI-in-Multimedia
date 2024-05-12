@@ -7,33 +7,33 @@ import os
 import pyttsx3
 from moviepy.editor import VideoFileClip, AudioFileClip
 
-from tensorflow import keras
-import  keras_cv
-import matplotlib.pyplot as plt
-from PIL import Image
+# from tensorflow import keras
+# import  keras_cv
+# import matplotlib.pyplot as plt
+# from PIL import Image
 
 # --------------------------------------------------------
 # GENERAREA DE IMAGINI
 
-keras.mixed_precision.set_global_policy("mixed_float16")
-
-# Crearea modelului
-model = keras_cv.models.StableDiffusion(img_height=512,
-                                        img_width=512,
-                                        jit_compile=True)
-
-def plot_images(images):
-    plt.figure(figsize=(20, 20))
-    for i in range(len(images)):
-        ax = plt.subplot(1, len(images), i + 1)
-        plt.imshow(images[i])
-        plt.axis("off")
-
-# Aici dam prompt-ul in functie de asignare
-images = model.text_to_image(prompt="Realistic beach scene with a black surfboard as the main subject and the light blue sea in the background.",
-                             batch_size=1)
-
-plot_images(images)
+# keras.mixed_precision.set_global_policy("mixed_float16")
+#
+# # Crearea modelului
+# model = keras_cv.models.StableDiffusion(img_height=512,
+#                                         img_width=512,
+#                                         jit_compile=True)
+#
+# def plot_images(images):
+#     plt.figure(figsize=(20, 20))
+#     for i in range(len(images)):
+#         ax = plt.subplot(1, len(images), i + 1)
+#         plt.imshow(images[i])
+#         plt.axis("off")
+#
+# # Aici dam prompt-ul in functie de asignare
+# images = model.text_to_image(prompt="Realistic beach scene with a black surfboard as the main subject and the light blue sea in the background.",
+#                              batch_size=1)
+#
+# plot_images(images)
 
 # --------------------------------------------------------
 # PRELUCRAREA IMAGINII ALESE
@@ -56,7 +56,7 @@ def visualize(image, detection_result):
     return image
 
 
-# Functie de creare a mastii binare cerute folosind GrabCut
+#Functie de creare a mastii binare cerute folosind GrabCut
 def grabcut_segmentation(image, rect, iter_count=10):
     # Initializam masca
     mask = np.zeros(image.shape[:2], dtype="uint8")
@@ -74,6 +74,23 @@ def grabcut_segmentation(image, rect, iter_count=10):
     segmented_object = cv2.bitwise_and(image, image, mask=output_mask)
     return output_mask, segmented_object
 
+# Decomenteaza pentru metoda cu masca de culoare
+# # Functie pentru crearea mastii de culoare
+# def create_black_mask(image):
+#     # Convertim in HSV
+#     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+#     # Dam un range pentru culoare pe care vrem sa o extragem (negru)
+#     lower_black = np.array([0, 0, 0])
+#     upper_black = np.array([180, 255, 30])
+#     # Cream masca
+#     mask = cv2.inRange(hsv, lower_black, upper_black)
+#     return mask
+#
+# # Functie pentru extragerea obiectului folosind masca de culoare
+# def extract_object(image, mask):
+#     segmented_object = np.copy(image)
+#     segmented_object[mask == 0] = [0, 0, 0]
+#     return segmented_object
 
 # Citim imaginea originala
 IMAGE_FILE = 'image.png'
@@ -104,11 +121,20 @@ for detection in detection_result.detections:
 # Aplicam GrabCut folosind coordonatele de la detectie
 grabcut_mask, segmented_object = grabcut_segmentation(rgb_annotated_image, rect)
 
+# Decomenteaza pentru metoda cu masca de culoare
+# black_mask = create_black_mask(rgb_annotated_image)
+# segmented_object = extract_object(rgb_annotated_image, black_mask)
+
 output_folder = os.path.dirname(__file__)
 
 cv2.imwrite(os.path.join(output_folder, 'object_detected_img.png'), rgb_annotated_image)
 cv2.imwrite(os.path.join(output_folder, 'binary_mask.png'), grabcut_mask)
 cv2.imwrite(os.path.join(output_folder, 'extracted_object.png'), segmented_object)
+
+# Decomenteaza pentru metoda cu masca de culoare
+# cv2.imwrite(os.path.join(output_folder, 'object_detected_img.png'), rgb_annotated_image)
+# cv2.imwrite(os.path.join(output_folder, 'binary_mask.png'), black_mask)
+# cv2.imwrite(os.path.join(output_folder, 'extracted_object.png'), segmented_object)
 
 # Convertim imaginea originala in spatiul de culoare YUV
 yuv_img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
