@@ -7,33 +7,36 @@ import os
 import pyttsx3
 from moviepy.editor import VideoFileClip, AudioFileClip
 
-# from tensorflow import keras
-# import  keras_cv
-# import matplotlib.pyplot as plt
-# from PIL import Image
+from tensorflow import keras
+import keras_cv
+import matplotlib.pyplot as plt
+from PIL import Image
 
 # --------------------------------------------------------
 # GENERAREA DE IMAGINI
 
-# keras.mixed_precision.set_global_policy("mixed_float16")
-#
-# # Crearea modelului
-# model = keras_cv.models.StableDiffusion(img_height=512,
-#                                         img_width=512,
-#                                         jit_compile=True)
-#
-# def plot_images(images):
-#     plt.figure(figsize=(20, 20))
-#     for i in range(len(images)):
-#         ax = plt.subplot(1, len(images), i + 1)
-#         plt.imshow(images[i])
-#         plt.axis("off")
-#
-# # Aici dam prompt-ul in functie de asignare
-# images = model.text_to_image(prompt="Realistic beach scene with a black surfboard as the main subject and the light blue sea in the background.",
-#                              batch_size=1)
-#
-# plot_images(images)
+keras.mixed_precision.set_global_policy("mixed_float16")
+
+# Crearea modelului
+model = keras_cv.models.StableDiffusion(img_height=512,
+                                        img_width=512,
+                                        jit_compile=True)
+
+
+def plot_images(images):
+    plt.figure(figsize=(20, 20))
+    for i in range(len(images)):
+        ax = plt.subplot(1, len(images), i + 1)
+        plt.imshow(images[i])
+        plt.axis("off")
+
+
+# Aici dam prompt-ul in functie de asignare
+images = model.text_to_image(
+    prompt="Realistic beach scene with a black surfboard as the main subject and the light blue sea in the background.",
+    batch_size=1)
+
+plot_images(images)
 
 # --------------------------------------------------------
 # PRELUCRAREA IMAGINII ALESE
@@ -56,7 +59,7 @@ def visualize(image, detection_result):
     return image
 
 
-#Functie de creare a mastii binare cerute folosind GrabCut
+# Functie de creare a mastii binare cerute folosind GrabCut
 def grabcut_segmentation(image, rect, iter_count=10):
     # Initializam masca
     mask = np.zeros(image.shape[:2], dtype="uint8")
@@ -74,7 +77,9 @@ def grabcut_segmentation(image, rect, iter_count=10):
     segmented_object = cv2.bitwise_and(image, image, mask=output_mask)
     return output_mask, segmented_object
 
+
 # Decomenteaza pentru metoda cu masca de culoare
+
 # # Functie pentru crearea mastii de culoare
 # def create_black_mask(image):
 #     # Convertim in HSV
@@ -198,7 +203,9 @@ font_color = (255, 255, 255)
 thickness = 2
 
 # Textul corespunzator fiecarei imagini
-image_texts = ['Original image with black surfboard on the beach', 'Image with surfboard detected', 'Extracted object', 'Mask with the object', 'Original image in YUV color space saved as tiff file', 'Mask with object in YUV colorspace saved as tiff file']
+image_texts = ['Original image with black surfboard on the beach', 'Image with surfboard detected', 'Extracted object',
+               'Mask with the object', 'Original image in YUV color space saved as tiff file',
+               'Mask with object in YUV colorspace saved as tiff file']
 
 # Facem un fundal pentru text
 black_frame = np.zeros((dimensions[1], dimensions[0], 3), dtype=np.uint8)
@@ -237,7 +244,6 @@ engine = pyttsx3.init()
 # Proprietatile vocii folosite (am modificat doar rate of speech-ul)
 engine.setProperty('rate', 150)
 
-
 # Introducem aici textul dorit
 text = ('Original image with black surfboard on the beach. Image with surfboard detected. Extracted object. Mask '
         'with the object. Original image in YUV color space saved as tiff file. Mask with object in YUV colorspace '
@@ -267,6 +273,6 @@ video = video.set_audio(audio)
 video.write_videofile("video_with__audio.avi", codec="libxvid", audio_codec="mp3")
 
 # In caz ca vrem sa avem doar videoclipul cu sunet decomentam urmatoarea linie
-#os.replace("video_with_audio.avi", "video.avi")
+# os.replace("video_with_audio.avi", "video.avi")
 
 print("Clip final salvat")
